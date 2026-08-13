@@ -1,6 +1,7 @@
 <div align="center">
 
 <img src="Thumbnail.png" alt="AXZY — Store Web Modern" width="100%" />
+<img src="./public/logo.webp" alt="AXZY — Store Web Modern" width="100%" />
 
 # AXZY — Store Web Modern
 
