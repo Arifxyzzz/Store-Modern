@@ -1,7 +1,6 @@
 <div align="center">
 
-<img src="Thumbnail.png" alt="AXZY — Store Web Modern" width="100%" />
-<img src="./public/logo.webp" alt="AXZY — Store Web Modern" width="100%" />
+<img src="./public/logo.webp" alt="AXZY — Store Web Modern" width="80%" />
 
 # AXZY — Store Web Modern
 
@@ -99,8 +98,4 @@ src/
 
 Released under the [MIT License](LICENSE) — free to use, modify, and distribute.
 
-<div align="center">
-
-Made by [**Arifxyzzz**](https://github.com/Arifxyzzz)
-
-</div>
+<img src="Thumbnail.png" alt="AXZY — Store Web Modern" width="100%" />
