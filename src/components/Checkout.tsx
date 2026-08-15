@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import {
   ArrowLeft,
   ArrowRight,
+  ArrowUpRight,
   Bitcoin,
   CheckCircle2,
   Clock4,
@@ -21,10 +22,10 @@ const METHODS: {
   icon: typeof Wallet;
   desc: string;
 }[] = [
-  { key: "QRIS", icon: QrCode, desc: "Scan sekali, semua bank & e-wallet" },
+  { key: "QRIS", icon: QrCode, desc: "One scan, every bank & e-wallet" },
   { key: "E-Wallet", icon: Wallet, desc: "DANA · GoPay · OVO · ShopeePay" },
   { key: "Crypto", icon: Bitcoin, desc: "USDT · BTC · ETH" },
-  { key: "PayPal", icon: CreditCard, desc: "Balance atau kartu internasional" },
+  { key: "PayPal", icon: CreditCard, desc: "Balance or international card" },
 ];
 
 type TxStatus = "pending" | "paid" | "cancelled";
@@ -49,17 +50,25 @@ export default function Checkout({
   const [stage, setStage] = useState<"pick" | "receipt">("pick");
   const [status, setStatus] = useState<TxStatus>("pending");
   const [checking, setChecking] = useState(false);
+  const [paying, setPaying] = useState(false);
 
   const txid = `AXZ-${product.name.length}${product.price}X${product.tag.length}0`.toUpperCase();
 
   const checkStatus = () => {
     if (status !== "pending") return;
     setChecking(true);
-    // dummy: setelah "ngecek" 1.2 detik, transaksi dianggap terbayar
+    // dummy: after "checking" for 1.2s the transaction is still unpaid
+    setTimeout(() => setChecking(false), 1200);
+  };
+
+  // real build would redirect to the gateway here — this fakes the round trip
+  const pay = () => {
+    if (status !== "pending" || paying) return;
+    setPaying(true);
     setTimeout(() => {
-      setChecking(false);
+      setPaying(false);
       setStatus("paid");
-    }, 1200);
+    }, 1400);
   };
 
   const st = STATUS_UI[status];
@@ -90,7 +99,7 @@ export default function Checkout({
             >
               <h2 className="checkout-title">Checkout</h2>
               <p className="checkout-sub">
-                Pilih metode pembayaran untuk menyelesaikan pesanan.
+                Choose a payment method to complete your order.
               </p>
 
               {/* order summary */}
@@ -149,11 +158,11 @@ export default function Checkout({
               <h2 className="checkout-title">{st.label}</h2>
               <p className="checkout-sub">
                 {status === "pending" &&
-                  `Selesaikan pembayaran via ${method}, lalu cek status di bawah.`}
+                  `Pay with ${method} to finish this order — you'll be sent to the payment gateway. Come back and refresh the status once it's done.`}
                 {status === "paid" &&
-                  "Pembayaran diterima — lisensi sudah masuk ke profilmu."}
+                  "Payment received — the license is now in your profile."}
                 {status === "cancelled" &&
-                  "Transaksi dibatalkan. Kamu bisa mulai lagi kapan saja."}
+                  "Transaction cancelled. You can start over any time."}
               </p>
 
               {/* transaction detail */}
@@ -186,28 +195,30 @@ export default function Checkout({
                 <div className="tx-actions">
                   <button
                     className="checkout-confirm"
-                    onClick={checkStatus}
-                    disabled={checking}
+                    onClick={pay}
+                    disabled={paying || checking}
                   >
-                    <RefreshCcw
-                      size={15}
-                      strokeWidth={2.6}
-                      className={checking ? "spin" : ""}
-                    />
-                    {checking ? "Checking…" : "Cek status"}
+                    {paying ? "Redirecting…" : `Pay $${product.price}`}
+                    <ArrowUpRight size={16} strokeWidth={2.6} />
                   </button>
                   <div className="tx-actions-row">
                     <button
                       className="tx-secondary"
-                      onClick={() => setStage("pick")}
+                      onClick={checkStatus}
+                      disabled={checking || paying}
+                      title="Refresh status"
                     >
-                      Ganti metode
+                      {checking ? (
+                        <RefreshCcw size={14} strokeWidth={2.6} className="spin" />
+                      ) : (
+                        "Refresh status"
+                      )}
                     </button>
                     <button
                       className="tx-secondary tx-danger"
                       onClick={() => setStatus("cancelled")}
                     >
-                      Batalkan
+                      Cancel
                     </button>
                   </div>
                 </div>
@@ -229,7 +240,7 @@ export default function Checkout({
                       setStage("pick");
                     }}
                   >
-                    Coba lagi
+                    Try again
                   </button>
                   <button className="tx-secondary" onClick={onBack}>
                     Back to product

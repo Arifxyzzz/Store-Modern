@@ -71,7 +71,7 @@ export const PRODUCTS = [
 
 export type Product = (typeof PRODUCTS)[number];
 
-/* meta per kategori — dipake di halaman detail produk */
+/* per-category meta — used on the product detail page */
 export const TAG_META = {
   UI: {
     files: ".rbxm  ·  .fig",
@@ -143,6 +143,55 @@ export const PURCHASES: {
   { user: "yuna.builds", product: "Pixel Pet System", price: "$22", time: "8 hrs ago", method: "E-Wallet", methodDetail: "OVO", txid: "AXZ-31GH94" },
   { user: "Tenshi", product: "Coin Economy Core", price: "$15", time: "12 hrs ago", method: "PayPal", methodDetail: "PayPal Checkout", txid: "AXZ-27VN58" },
   { user: "MonoDev", product: "Grid Tycoon Base", price: "$28", time: "1 day ago", method: "QRIS", methodDetail: "QRIS — Scan & Pay", txid: "AXZ-19SJ40" },
+];
+
+/* pending / unpaid orders — shown on the Cart page */
+export type OrderStatus = "awaiting" | "expired" | "processing";
+
+export const PENDING_ORDERS: {
+  product: string;
+  tag: string;
+  price: number;
+  method: PayMethod;
+  methodDetail: string;
+  txid: string;
+  created: string;
+  expires: string;
+  status: OrderStatus;
+}[] = [
+  {
+    product: "Drift Race Kit",
+    tag: "Kit",
+    price: 24,
+    method: "QRIS",
+    methodDetail: "QRIS — Scan & Pay",
+    txid: "AXZ-84KD21",
+    created: "8 min ago",
+    expires: "52 min left",
+    status: "awaiting",
+  },
+  {
+    product: "Bolt Anti-Cheat",
+    tag: "Script",
+    price: 20,
+    method: "E-Wallet",
+    methodDetail: "DANA",
+    txid: "AXZ-77BN45",
+    created: "34 min ago",
+    expires: "26 min left",
+    status: "processing",
+  },
+  {
+    product: "Sonic Sound Kit",
+    tag: "FX",
+    price: 6,
+    method: "PayPal",
+    methodDetail: "PayPal Checkout",
+    txid: "AXZ-40PL93",
+    created: "2 days ago",
+    expires: "Expired",
+    status: "expired",
+  },
 ];
 
 export const CHANGELOG = [

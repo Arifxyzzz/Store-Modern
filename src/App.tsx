@@ -1,6 +1,21 @@
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Languages, ArrowLeftRight, ChevronLeft, User } from "lucide-react";
+import {
+  Languages,
+  ArrowLeftRight,
+  ChevronLeft,
+  ChevronsDown,
+  User,
+  House,
+  Wrench,
+  Package,
+  RefreshCw,
+  Receipt,
+  ShoppingCart,
+  Mail,
+} from "lucide-react";
+import SiteFooter from "./components/SiteFooter";
+import LegalScreen, { type LegalKey } from "./components/LegalScreen";
 import HomePage from "./pages/HomePage";
 import ServicePage from "./pages/ServicePage";
 import ProductsPage from "./pages/ProductsPage";
@@ -8,7 +23,19 @@ import UpdatePage from "./pages/UpdatePage";
 import SalesPage from "./pages/SalesPage";
 import ContactPage from "./pages/ContactPage";
 import ProfileAside from "./components/ProfileAside";
-import { NAV_PAGES, type PageKey } from "./data";
+import { NAV_PAGES, PENDING_ORDERS, type PageKey } from "./data";
+
+const NAV_ICONS: Record<PageKey, typeof House> = {
+  home: House,
+  service: Wrench,
+  products: Package,
+  update: RefreshCw,
+  sales: Receipt,
+  contact: Mail,
+};
+
+// unpaid orders drive the dot on the login/profile button
+const HAS_PENDING = PENDING_ORDERS.some((o) => o.status !== "expired");
 
 export default function App() {
   const [index, setIndex] = useState(() => {
@@ -18,15 +45,22 @@ export default function App() {
   });
   const [loggedIn, setLoggedIn] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [cartOpen, setCartOpen] = useState(false);
   const [userName, setUserName] = useState("Arif");
   const [currency, setCurrency] = useState<"USD" | "IDR">("USD");
   const [lang, setLang] = useState<"EN" | "ID">("EN");
+  // vertical depth of the shell: 0 = pages, 1 = footer (the bottom of the site)
+  const [depth, setDepth] = useState(2);
+  // a legal document only exists once picked from the footer — never scrolled to
+  const [legalTab, setLegalTab] = useState<LegalKey | null>("company");
   const wheelLock = useRef(false);
   const touchStart = useRef<{ x: number; y: number } | null>(null);
   const navRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const [pill, setPill] = useState({ x: 0, w: 0, ready: false });
   const indexRef = useRef(index);
   indexRef.current = index;
+  const depthRef = useRef(depth);
+  depthRef.current = depth;
 
   // Track active nav button position for the sliding pill
   useEffect(() => {
@@ -41,16 +75,57 @@ export default function App() {
   }, [index]);
 
   const goTo = (i: number) => {
+    setDepth(0);
+    setTimeout(() => setLegalTab(null), 850);
     setIndex(Math.max(0, Math.min(NAV_PAGES.length - 1, i)));
+  };
+
+  // picking a document from the footer mounts it below and slides down to it
+  const openLegal = (tab: LegalKey) => {
+    setLegalTab(tab);
+    setDepth(2);
+  };
+
+  // leaving a document slides back to the footer, then unmounts it
+  const closeLegal = () => {
+    setDepth(1);
+    setTimeout(() => setLegalTab(null), 850);
+  };
+
+  // one step: pages horizontally, then down to the footer — which is the end
+  const step = (dir: 1 | -1) => {
+    const last = NAV_PAGES.length - 1;
+    // inside a legal document only an upward step is meaningful
+    if (depthRef.current === 2) {
+      if (dir < 0) closeLegal();
+      return;
+    }
+    if (depthRef.current === 1) {
+      if (dir < 0) setDepth(0);
+      return;
+    }
+    if (dir > 0 && indexRef.current === last) {
+      setDepth(1);
+      return;
+    }
+    setIndex(Math.max(0, Math.min(last, indexRef.current + dir)));
   };
 
   // Wheel / trackpad scroll => horizontal page navigation
   useEffect(() => {
     const onWheel = (e: WheelEvent) => {
-      // inside a scrollable area (e.g. product grid), let it scroll natively
-      const scrollable = (e.target as Element).closest?.(".scroll-y");
+      const target = e.target as Element;
+      // overlays (profile) own their scroll — never page from inside them
+      if (target.closest?.(".no-page")) return;
+      // inside a scrollable area (e.g. product grid), let it scroll natively —
+      // except a legal doc already at its top, where scrolling up means leave
+      const scrollable = target.closest?.(".scroll-y");
       if (scrollable && scrollable.scrollHeight > scrollable.clientHeight) {
-        return;
+        const leavingLegal =
+          scrollable.classList.contains("legal-screen") &&
+          scrollable.scrollTop <= 0 &&
+          e.deltaY < 0;
+        if (!leavingLegal) return;
       }
       e.preventDefault();
       if (wheelLock.current) return;
@@ -59,7 +134,7 @@ export default function App() {
       if (Math.abs(delta) < 12) return;
       wheelLock.current = true;
       setTimeout(() => (wheelLock.current = false), 750);
-      goTo(indexRef.current + (delta > 0 ? 1 : -1));
+      step(delta > 0 ? 1 : -1);
     };
     window.addEventListener("wheel", onWheel, { passive: false });
     return () => window.removeEventListener("wheel", onWheel);
@@ -68,8 +143,14 @@ export default function App() {
   // Keyboard navigation
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "ArrowRight" || e.key === "PageDown") goTo(indexRef.current + 1);
-      if (e.key === "ArrowLeft" || e.key === "PageUp") goTo(indexRef.current - 1);
+      if (e.key === "ArrowRight" || e.key === "ArrowDown" || e.key === "PageDown")
+        step(1);
+      if (e.key === "ArrowLeft" || e.key === "ArrowUp" || e.key === "PageUp")
+        step(-1);
+      if (e.key === "Escape") {
+        setDepth(0);
+        setTimeout(() => setLegalTab(null), 850);
+      }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -85,9 +166,26 @@ export default function App() {
       const dx = e.changedTouches[0].clientX - touchStart.current.x;
       const dy = e.changedTouches[0].clientY - touchStart.current.y;
       touchStart.current = null;
-      const delta = Math.abs(dx) >= Math.abs(dy) ? -dx : dy;
+      const target = e.target as Element;
+      // overlays (profile) own their gestures — never page from inside them
+      if (target.closest?.(".no-page")) return;
+      const horizontal = Math.abs(dx) >= Math.abs(dy);
+      // a vertical swipe inside a scrollable area scrolls it instead of paging —
+      // except a legal doc already at its top, where swiping down means leave
+      if (!horizontal) {
+        const scrollable = target.closest?.(".scroll-y");
+        if (scrollable && scrollable.scrollHeight > scrollable.clientHeight) {
+          const leavingLegal =
+            scrollable.classList.contains("legal-screen") &&
+            scrollable.scrollTop <= 0 &&
+            dy > 0;
+          if (!leavingLegal) return;
+        }
+      }
+      // swipe left or up both move forward
+      const delta = horizontal ? -dx : -dy;
       if (Math.abs(delta) < 40) return;
-      goTo(indexRef.current + (delta > 0 ? 1 : -1));
+      step(delta > 0 ? 1 : -1);
     };
     window.addEventListener("touchstart", onStart);
     window.addEventListener("touchend", onEnd);
@@ -99,24 +197,38 @@ export default function App() {
 
   const activeKey = NAV_PAGES[index];
 
-  const navLink = (key: PageKey, i: number) => (
-    <button
-      key={key}
-      ref={(el) => (navRefs.current[i] = el)}
-      className={`nav-link${activeKey === key ? " active" : ""}`}
-      onClick={() => goTo(NAV_PAGES.indexOf(key))}
-    >
-      <span className="nav-label">{key.toUpperCase()}</span>
-    </button>
-  );
+  const navLink = (key: PageKey, i: number) => {
+    const Icon = NAV_ICONS[key];
+    return (
+      <button
+        key={key}
+        ref={(el) => (navRefs.current[i] = el)}
+        className={`nav-link${activeKey === key ? " active" : ""}`}
+        title={key.charAt(0).toUpperCase() + key.slice(1)}
+        aria-label={key}
+        onClick={() => goTo(NAV_PAGES.indexOf(key))}
+      >
+        <span className="nav-icon">
+          <Icon size={19} strokeWidth={2.3} />
+        </span>
+        <span className="nav-label">{key.toUpperCase()}</span>
+      </button>
+    );
+  };
 
   return (
+    <div className="shell">
+      <motion.div
+        className="shell-track"
+        animate={{ y: `-${depth * 100}dvh` }}
+        transition={{ duration: 0.85, ease: [0.22, 1, 0.36, 1] }}
+      >
     <div className="app">
       <header className="header">
         <div className="header-left">
           <button
             className="icon-btn"
-            title="Ganti bahasa"
+            title="Change language"
             onClick={() => setLang(lang === "EN" ? "ID" : "EN")}
           >
             <Languages size={19} strokeWidth={2.4} />
@@ -134,7 +246,7 @@ export default function App() {
           </button>
           <button
             className="icon-btn"
-            title="Ganti mata uang"
+            title="Change currency"
             onClick={() => setCurrency(currency === "USD" ? "IDR" : "USD")}
           >
             <ArrowLeftRight size={15} strokeWidth={2.6} />
@@ -157,18 +269,33 @@ export default function App() {
         <div className="header-right">
           <AnimatePresence mode="wait" initial={false}>
             {profileOpen ? (
-              <motion.button
+              <motion.div
                 key="back"
-                className="icon-btn"
-                title="Close profile"
-                onClick={() => setProfileOpen(false)}
+                className="header-aside-btns"
                 initial={{ opacity: 0, x: 16 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: 16 }}
                 transition={{ duration: 0.25 }}
               >
-                <ChevronLeft size={24} strokeWidth={2.6} />
-              </motion.button>
+                <button
+                  className={`icon-btn cart-toggle${cartOpen ? " active" : ""}`}
+                  title={cartOpen ? "Back to profile" : "Pending payments"}
+                  onClick={() => setCartOpen(!cartOpen)}
+                >
+                  <ShoppingCart size={19} strokeWidth={2.4} />
+                  {HAS_PENDING && !cartOpen && <span className="notif-dot" />}
+                </button>
+                <button
+                  className="icon-btn"
+                  title="Close profile"
+                  onClick={() => {
+                    setProfileOpen(false);
+                    setCartOpen(false);
+                  }}
+                >
+                  <ChevronLeft size={24} strokeWidth={2.6} />
+                </button>
+              </motion.div>
             ) : loggedIn ? (
               <motion.button
                 key="profile"
@@ -182,6 +309,7 @@ export default function App() {
               >
                 <span className="login-icon">{userName.charAt(0).toUpperCase()}</span>
                 {userName}
+                {HAS_PENDING && <span className="notif-dot" />}
               </motion.button>
             ) : (
               <motion.button
@@ -197,6 +325,7 @@ export default function App() {
                   <User size={14} strokeWidth={2.6} />
                 </span>
                 Login
+                {HAS_PENDING && <span className="notif-dot" />}
               </motion.button>
             )}
           </AnimatePresence>
@@ -242,10 +371,14 @@ export default function App() {
           {profileOpen && (
             <ProfileAside
               loggedIn={loggedIn}
+              cartOpen={cartOpen}
               name={userName}
               onRename={setUserName}
               onLogin={() => setLoggedIn(true)}
-              onLogout={() => setLoggedIn(false)}
+              onLogout={() => {
+                setLoggedIn(false);
+                setCartOpen(false);
+              }}
             />
           )}
         </AnimatePresence>
@@ -263,7 +396,35 @@ export default function App() {
           )}
           {NAV_PAGES.map(navLink)}
         </nav>
+
+        {/* hint only on the last page — scroll once more for the footer */}
+        <AnimatePresence>
+          {index === NAV_PAGES.length - 1 && depth === 0 && (
+            <motion.button
+              className="footer-hint"
+              onClick={() => setDepth(1)}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 10 }}
+              transition={{ duration: 0.35 }}
+            >
+              <ChevronsDown size={15} strokeWidth={2.6} />
+              Scroll for more
+            </motion.button>
+          )}
+        </AnimatePresence>
       </footer>
+    </div>
+
+        <SiteFooter
+          onTop={() => setDepth(0)}
+          onGoTo={goTo}
+          onLegal={openLegal}
+          active={legalTab}
+        />
+        {/* only exists while a document is open — the footer is otherwise the end */}
+        {legalTab && <LegalScreen tab={legalTab} />}
+      </motion.div>
     </div>
   );
 }

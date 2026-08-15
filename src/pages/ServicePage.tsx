@@ -25,7 +25,7 @@ export default function ServicePage({ active }: { active: boolean }) {
         </p>
       </Reveal>
 
-      <div className="service-grid">
+      <div className="service-grid scroll-y">
         {SERVICES.map((s, i) => {
           const Icon = ICONS[s.icon];
           return (

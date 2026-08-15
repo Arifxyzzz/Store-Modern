@@ -20,6 +20,7 @@ import {
   Wallet,
 } from "lucide-react";
 import { LICENSES } from "../data";
+import CartPanel from "./CartPanel";
 
 const item = {
   hidden: { opacity: 0, x: 36 },
@@ -61,7 +62,7 @@ function toPath(points: { x: number; y: number }[]) {
     .join(" ");
 }
 
-// kredensial dummy dari .env — testing local, frontend only
+// dummy credentials from .env — local testing, frontend only
 const ENV_EMAIL = import.meta.env.VITE_AUTH_EMAIL ?? "";
 const ENV_USERNAME = import.meta.env.VITE_AUTH_USERNAME ?? "";
 const ENV_PASSWORD = import.meta.env.VITE_AUTH_PASSWORD ?? "";
@@ -83,7 +84,7 @@ function AuthPanel({ onLogin }: { onLogin: () => void }) {
 
   const toggleHuman = () => {
     if (human || verifying) return;
-    // dummy captcha: spinner sebentar lalu tercentang
+    // dummy captcha: brief spinner, then checked
     setVerifying(true);
     setTimeout(() => {
       setVerifying(false);
@@ -93,7 +94,7 @@ function AuthPanel({ onLogin }: { onLogin: () => void }) {
 
   const submit = () => {
     if (!human) {
-      setError("Centang verifikasi dulu ya.");
+      setError("Please complete the verification first.");
       return;
     }
     if (isLogin) {
@@ -104,10 +105,10 @@ function AuthPanel({ onLogin }: { onLogin: () => void }) {
         setError("");
         onLogin();
       } else {
-        setError("Username atau password salah.");
+        setError("Incorrect username or password.");
       }
     } else {
-      // register dummy: langsung dianggap berhasil
+      // dummy register: always treated as successful
       setError("");
       onLogin();
     }
@@ -291,21 +292,21 @@ function EditPanel({
 
   const submit = () => {
     if (!draftName.trim()) {
-      setError("Nama tidak boleh kosong.");
+      setError("Name can't be empty.");
       return;
     }
-    // ganti password opsional — kalau salah satu field pw diisi, semua dicek
+    // password change is optional — if any pw field is filled, all are checked
     if (currentPw || newPw || confirmPw) {
       if (currentPw !== ENV_PASSWORD) {
-        setError("Current password salah.");
+        setError("Current password is incorrect.");
         return;
       }
       if (newPw.length < 6) {
-        setError("Password baru minimal 6 karakter.");
+        setError("New password must be at least 6 characters.");
         return;
       }
       if (newPw !== confirmPw) {
-        setError("Konfirmasi password tidak cocok.");
+        setError("Password confirmation doesn't match.");
         return;
       }
     }
@@ -473,12 +474,14 @@ function LicenseList() {
 
 export default function ProfileAside({
   loggedIn,
+  cartOpen,
   name,
   onRename,
   onLogin,
   onLogout,
 }: {
   loggedIn: boolean;
+  cartOpen: boolean;
   name: string;
   onRename: (name: string) => void;
   onLogin: () => void;
@@ -488,7 +491,7 @@ export default function ProfileAside({
 
   return (
     <motion.aside
-      className="profile-aside"
+      className="profile-aside no-page scroll-y"
       initial={{ width: 0, opacity: 0 }}
       animate={{ width: "auto", opacity: 1 }}
       exit={{ width: 0, opacity: 0 }}
@@ -498,6 +501,16 @@ export default function ProfileAside({
         <AnimatePresence mode="wait" initial={false}>
         {!loggedIn ? (
           <AuthPanel onLogin={onLogin} />
+        ) : cartOpen ? (
+          <motion.div
+            key="cart"
+            initial={{ opacity: 0, x: 24 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -24 }}
+            transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+          >
+            <CartPanel />
+          </motion.div>
         ) : editing ? (
           <EditPanel
             key="edit"
