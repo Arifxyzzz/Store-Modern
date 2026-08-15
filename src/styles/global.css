@@ -3263,21 +3263,31 @@ a {
   flex-shrink: 0;
   width: 100%;
   padding: 34px 54px 40px;
-  display: flex;
-  overflow: hidden;
+  /* block flow, so a taller document grows the scrollable height instead of
+     being stretched to the viewport and clipped */
+  display: block;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
 }
 
-/* everything fits one screen — nothing here scrolls */
+.legal-screen::-webkit-scrollbar {
+  display: none;
+}
+
+/* min-height keeps a short document centred; a tall one pushes past it */
 .legal-inner {
   position: relative;
   z-index: 1;
   width: 100%;
   max-width: 1500px;
   margin: 0 auto;
+  min-height: 100%;
   display: flex;
   flex-direction: column;
   justify-content: center;
-  min-height: 0;
 }
 
 .legal-doc {
@@ -3307,11 +3317,12 @@ a {
 
 /* a plain index — no outline, no pill, just a big muted number */
 .doc-n {
-  font-size: clamp(34px, 4vw, 54px);
+  font-size: clamp(44px, 4vw, 84px);
   font-weight: 800;
   line-height: 1;
   letter-spacing: -0.02em;
-  color: #33333a;
+  color: transparent;
+  -webkit-text-stroke: 1.4px #323130;
 }
 
 .doc-title {
@@ -3950,22 +3961,9 @@ a {
     display: none;
   }
 
-  /* legal: one screen is too small to tile — the document scrolls here */
+  /* legal: one screen is too small to tile — the document runs long and scrolls */
   .legal-screen {
     padding: 20px 20px 34px;
-    display: block;
-    overflow-y: auto;
-    overscroll-behavior: contain;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
-  }
-  .legal-screen::-webkit-scrollbar {
-    display: none;
-  }
-  /* block flow, so its height comes from the content and the parent can scroll */
-  .legal-inner {
-    display: block;
-    min-height: 0;
   }
   .legal-doc {
     gap: 18px;
@@ -3989,9 +3987,6 @@ a {
   }
   .doc-terms {
     gap: 1px;
-  }
-  .co-outline {
-    font-size: clamp(56px, 17vw, 96px);
   }
   .co-stats {
     grid-template-columns: repeat(2, minmax(0, 1fr));

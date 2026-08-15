@@ -50,9 +50,9 @@ export default function App() {
   const [currency, setCurrency] = useState<"USD" | "IDR">("USD");
   const [lang, setLang] = useState<"EN" | "ID">("EN");
   // vertical depth of the shell: 0 = pages, 1 = footer (the bottom of the site)
-  const [depth, setDepth] = useState(2);
+  const [depth, setDepth] = useState(0);
   // a legal document only exists once picked from the footer — never scrolled to
-  const [legalTab, setLegalTab] = useState<LegalKey | null>("company");
+  const [legalTab, setLegalTab] = useState<LegalKey | null>(null);
   const wheelLock = useRef(false);
   const touchStart = useRef<{ x: number; y: number } | null>(null);
   const navRefs = useRef<(HTMLButtonElement | null)[]>([]);

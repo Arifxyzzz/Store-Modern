@@ -195,7 +195,7 @@ function CompanyDoc() {
   return (
     <div className="doc doc-company">
       <div className="co-brand">
-        <span className="co-wordmark">AXZY</span>
+        <span className="co-wordmark">AXZY.</span>
         <p className="co-lede">
           A small independent studio building assets and tooling for Roblox
           creators. Everything we sell is used in a real project before it
