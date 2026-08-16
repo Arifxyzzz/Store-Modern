@@ -23,7 +23,13 @@ import UpdatePage from "./pages/UpdatePage";
 import SalesPage from "./pages/SalesPage";
 import ContactPage from "./pages/ContactPage";
 import ProfileAside from "./components/ProfileAside";
-import { NAV_PAGES, PENDING_ORDERS, type PageKey } from "./data";
+import {
+  NAV_PAGES,
+  ORDERS,
+  type Order,
+  type OrderStatus,
+  type PageKey,
+} from "./data";
 
 const NAV_ICONS: Record<PageKey, typeof House> = {
   home: House,
@@ -33,9 +39,6 @@ const NAV_ICONS: Record<PageKey, typeof House> = {
   sales: Receipt,
   contact: Mail,
 };
-
-// unpaid orders drive the dot on the login/profile button
-const HAS_PENDING = PENDING_ORDERS.some((o) => o.status !== "expired");
 
 export default function App() {
   const [index, setIndex] = useState(() => {
@@ -47,6 +50,9 @@ export default function App() {
   const [profileOpen, setProfileOpen] = useState(false);
   const [cartOpen, setCartOpen] = useState(false);
   const [userName, setUserName] = useState("Arif");
+  // one shared order list — checkout creates orders here, the profile
+  // orders panel is the single place to pay, cancel, or open an invoice
+  const [orders, setOrders] = useState<Order[]>(ORDERS);
   const [currency, setCurrency] = useState<"USD" | "IDR">("USD");
   const [lang, setLang] = useState<"EN" | "ID">("EN");
   // vertical depth of the shell: 0 = pages, 1 = footer (the bottom of the site)
@@ -61,6 +67,23 @@ export default function App() {
   indexRef.current = index;
   const depthRef = useRef(depth);
   depthRef.current = depth;
+
+  // checkout hands a new order to the shared list and sends the user here
+  const placeOrder = (order: Order) =>
+    setOrders((prev) => [order, ...prev]);
+  const openOrders = () => {
+    setProfileOpen(true);
+    setCartOpen(true);
+  };
+  const setOrderStatus = (txid: string, status: OrderStatus) =>
+    setOrders((prev) =>
+      prev.map((o) => (o.txid === txid ? { ...o, status } : o))
+    );
+
+  // unpaid orders drive the dot on the login/profile button
+  const hasPending = orders.some(
+    (o) => o.status === "awaiting" || o.status === "processing"
+  );
 
   // Track active nav button position for the sliding pill
   useEffect(() => {
@@ -279,11 +302,11 @@ export default function App() {
               >
                 <button
                   className={`icon-btn cart-toggle${cartOpen ? " active" : ""}`}
-                  title={cartOpen ? "Back to profile" : "Pending payments"}
+                  title={cartOpen ? "Back to profile" : "My orders"}
                   onClick={() => setCartOpen(!cartOpen)}
                 >
                   <ShoppingCart size={19} strokeWidth={2.4} />
-                  {HAS_PENDING && !cartOpen && <span className="notif-dot" />}
+                  {hasPending && !cartOpen && <span className="notif-dot" />}
                 </button>
                 <button
                   className="icon-btn"
@@ -309,7 +332,7 @@ export default function App() {
               >
                 <span className="login-icon">{userName.charAt(0).toUpperCase()}</span>
                 {userName}
-                {HAS_PENDING && <span className="notif-dot" />}
+                {hasPending && <span className="notif-dot" />}
               </motion.button>
             ) : (
               <motion.button
@@ -325,7 +348,7 @@ export default function App() {
                   <User size={14} strokeWidth={2.6} />
                 </span>
                 Login
-                {HAS_PENDING && <span className="notif-dot" />}
+                {hasPending && <span className="notif-dot" />}
               </motion.button>
             )}
           </AnimatePresence>
@@ -347,12 +370,12 @@ export default function App() {
                 animate={{ x: `-${index * 100}%` }}
                 transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
               >
-                <section className="page"><HomePage active={index === 0} /></section>
-                <section className="page"><ServicePage active={index === 1} /></section>
-                <section className="page"><ProductsPage active={index === 2} /></section>
-                <section className="page"><UpdatePage active={index === 3} /></section>
-                <section className="page"><SalesPage active={index === 4} /></section>
-                <section className="page"><ContactPage active={index === 5} /></section>
+                <section className="page scroll-y"><HomePage active={index === 0} /></section>
+                <section className="page scroll-y"><ServicePage active={index === 1} /></section>
+                <section className="page scroll-y"><ProductsPage active={index === 2} onPlaceOrder={placeOrder} onOpenOrders={openOrders} /></section>
+                <section className="page scroll-y"><UpdatePage active={index === 3} /></section>
+                <section className="page scroll-y"><SalesPage active={index === 4} /></section>
+                <section className="page scroll-y"><ContactPage active={index === 5} /></section>
               </motion.div>
             </div>
             <div className="panel-corner corner-left">
@@ -373,6 +396,8 @@ export default function App() {
               loggedIn={loggedIn}
               cartOpen={cartOpen}
               name={userName}
+              orders={orders}
+              onSetOrderStatus={setOrderStatus}
               onRename={setUserName}
               onLogin={() => setLoggedIn(true)}
               onLogout={() => {

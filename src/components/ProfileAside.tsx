@@ -19,7 +19,7 @@ import {
   User,
   Wallet,
 } from "lucide-react";
-import { LICENSES } from "../data";
+import { LICENSES, type Order, type OrderStatus } from "../data";
 import CartPanel from "./CartPanel";
 
 const item = {
@@ -476,6 +476,8 @@ export default function ProfileAside({
   loggedIn,
   cartOpen,
   name,
+  orders,
+  onSetOrderStatus,
   onRename,
   onLogin,
   onLogout,
@@ -483,6 +485,8 @@ export default function ProfileAside({
   loggedIn: boolean;
   cartOpen: boolean;
   name: string;
+  orders: Order[];
+  onSetOrderStatus: (txid: string, status: OrderStatus) => void;
   onRename: (name: string) => void;
   onLogin: () => void;
   onLogout: () => void;
@@ -509,7 +513,11 @@ export default function ProfileAside({
             exit={{ opacity: 0, x: -24 }}
             transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
           >
-            <CartPanel />
+            <CartPanel
+              customer={name}
+              orders={orders}
+              onSetStatus={onSetOrderStatus}
+            />
           </motion.div>
         ) : editing ? (
           <EditPanel

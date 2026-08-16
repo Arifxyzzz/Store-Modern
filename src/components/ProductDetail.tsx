@@ -13,7 +13,7 @@ import {
   Tag,
 } from "lucide-react";
 import Checkout from "./Checkout";
-import { REVIEWS, TAG_META, type Product } from "../data";
+import { REVIEWS, TAG_META, type Order, type Product } from "../data";
 
 const SLIDES = [0, 1, 2, 3];
 
@@ -37,9 +37,13 @@ function Stars({ value, size = 13 }: { value: number; size?: number }) {
 
 export default function ProductDetail({
   product,
+  onPlaceOrder,
+  onOpenOrders,
   onBack,
 }: {
   product: Product;
+  onPlaceOrder: (order: Order) => void;
+  onOpenOrders: () => void;
   onBack: () => void;
 }) {
   const [slide, setSlide] = useState(0);
@@ -47,7 +51,14 @@ export default function ProductDetail({
   const meta = TAG_META[product.tag];
 
   if (buying) {
-    return <Checkout product={product} onBack={() => setBuying(false)} />;
+    return (
+      <Checkout
+        product={product}
+        onPlaceOrder={onPlaceOrder}
+        onOpenOrders={onOpenOrders}
+        onBack={() => setBuying(false)}
+      />
+    );
   }
 
   return (

@@ -3,9 +3,17 @@ import { Package, Search } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import Reveal from "../components/Reveal";
 import ProductDetail from "../components/ProductDetail";
-import { PRODUCTS, type Product } from "../data";
+import { PRODUCTS, type Order, type Product } from "../data";
 
-export default function ProductsPage({ active }: { active: boolean }) {
+export default function ProductsPage({
+  active,
+  onPlaceOrder,
+  onOpenOrders,
+}: {
+  active: boolean;
+  onPlaceOrder: (order: Order) => void;
+  onOpenOrders: () => void;
+}) {
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<Product | null>(null);
 
@@ -24,6 +32,8 @@ export default function ProductsPage({ active }: { active: boolean }) {
         <ProductDetail
           key={selected.name}
           product={selected}
+          onPlaceOrder={onPlaceOrder}
+          onOpenOrders={onOpenOrders}
           onBack={() => setSelected(null)}
         />
       </AnimatePresence>

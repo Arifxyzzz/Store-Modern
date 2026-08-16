@@ -6,16 +6,14 @@ import {
   ArrowUpRight,
   Bitcoin,
   CheckCircle2,
-  Clock4,
   CreditCard,
   Hash,
   Package,
   QrCode,
-  RefreshCcw,
   Wallet,
-  XCircle,
 } from "lucide-react";
-import type { PayMethod, Product } from "../data";
+import type { Order, PayMethod, Product } from "../data";
+import { METHOD_DETAILS } from "./statusMeta";
 
 const METHODS: {
   key: PayMethod;
@@ -28,50 +26,39 @@ const METHODS: {
   { key: "PayPal", icon: CreditCard, desc: "Balance or international card" },
 ];
 
-type TxStatus = "pending" | "paid" | "cancelled";
-
-const STATUS_UI: Record<
-  TxStatus,
-  { icon: typeof Clock4; label: string; cls: string }
-> = {
-  pending: { icon: Clock4, label: "Awaiting payment", cls: "tx-pending" },
-  paid: { icon: CheckCircle2, label: "Paid", cls: "tx-paid" },
-  cancelled: { icon: XCircle, label: "Cancelled", cls: "tx-cancelled" },
-};
-
+/* checkout only places the order — paying, cancelling, and invoices
+   all live in one place: the orders panel in the profile aside */
 export default function Checkout({
   product,
+  onPlaceOrder,
+  onOpenOrders,
   onBack,
 }: {
   product: Product;
+  onPlaceOrder: (order: Order) => void;
+  onOpenOrders: () => void;
   onBack: () => void;
 }) {
   const [method, setMethod] = useState<PayMethod | null>(null);
-  const [stage, setStage] = useState<"pick" | "receipt">("pick");
-  const [status, setStatus] = useState<TxStatus>("pending");
-  const [checking, setChecking] = useState(false);
-  const [paying, setPaying] = useState(false);
+  const [placed, setPlaced] = useState(false);
 
   const txid = `AXZ-${product.name.length}${product.price}X${product.tag.length}0`.toUpperCase();
 
-  const checkStatus = () => {
-    if (status !== "pending") return;
-    setChecking(true);
-    // dummy: after "checking" for 1.2s the transaction is still unpaid
-    setTimeout(() => setChecking(false), 1200);
+  const confirm = () => {
+    if (!method || placed) return;
+    onPlaceOrder({
+      product: product.name,
+      tag: product.tag,
+      price: product.price,
+      method,
+      methodDetail: METHOD_DETAILS[method],
+      txid,
+      created: "Just now",
+      expires: "60 min left",
+      status: "awaiting",
+    });
+    setPlaced(true);
   };
-
-  // real build would redirect to the gateway here — this fakes the round trip
-  const pay = () => {
-    if (status !== "pending" || paying) return;
-    setPaying(true);
-    setTimeout(() => {
-      setPaying(false);
-      setStatus("paid");
-    }, 1400);
-  };
-
-  const st = STATUS_UI[status];
 
   return (
     <motion.div
@@ -88,7 +75,7 @@ export default function Checkout({
 
       <div className="checkout-wrap scroll-y">
         <AnimatePresence mode="wait" initial={false}>
-          {stage === "pick" ? (
+          {!placed ? (
             <motion.div
               key="pick"
               className="checkout-stage"
@@ -99,7 +86,7 @@ export default function Checkout({
             >
               <h2 className="checkout-title">Checkout</h2>
               <p className="checkout-sub">
-                Choose a payment method to complete your order.
+                Choose a payment method to place your order.
               </p>
 
               {/* order summary */}
@@ -137,35 +124,30 @@ export default function Checkout({
               <button
                 className="checkout-confirm"
                 disabled={!method}
-                onClick={() => setStage("receipt")}
+                onClick={confirm}
               >
-                Confirm & pay ${product.price}
+                Place order — ${product.price}
                 <ArrowRight size={16} strokeWidth={2.6} />
               </button>
             </motion.div>
           ) : (
             <motion.div
-              key="receipt"
+              key="placed"
               className="checkout-stage"
               initial={{ opacity: 0, x: 40 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -40 }}
               transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
             >
-              <div className={`tx-status ${st.cls}`}>
-                <st.icon size={30} strokeWidth={2.2} />
+              <div className="tx-status st-paid">
+                <CheckCircle2 size={30} strokeWidth={2.2} />
               </div>
-              <h2 className="checkout-title">{st.label}</h2>
+              <h2 className="checkout-title">Order placed</h2>
               <p className="checkout-sub">
-                {status === "pending" &&
-                  `Pay with ${method} to finish this order — you'll be sent to the payment gateway. Come back and refresh the status once it's done.`}
-                {status === "paid" &&
-                  "Payment received — the license is now in your profile."}
-                {status === "cancelled" &&
-                  "Transaction cancelled. You can start over any time."}
+                Your order is waiting in your profile — finish the payment
+                there. You can also cancel it any time before paying.
               </p>
 
-              {/* transaction detail */}
               <div className="tx-card">
                 <div className="tx-row">
                   <span className="tx-label">
@@ -191,62 +173,15 @@ export default function Checkout({
                 </div>
               </div>
 
-              {status === "pending" && (
-                <div className="tx-actions">
-                  <button
-                    className="checkout-confirm"
-                    onClick={pay}
-                    disabled={paying || checking}
-                  >
-                    {paying ? "Redirecting…" : `Pay $${product.price}`}
-                    <ArrowUpRight size={16} strokeWidth={2.6} />
-                  </button>
-                  <div className="tx-actions-row">
-                    <button
-                      className="tx-secondary"
-                      onClick={checkStatus}
-                      disabled={checking || paying}
-                      title="Refresh status"
-                    >
-                      {checking ? (
-                        <RefreshCcw size={14} strokeWidth={2.6} className="spin" />
-                      ) : (
-                        "Refresh status"
-                      )}
-                    </button>
-                    <button
-                      className="tx-secondary tx-danger"
-                      onClick={() => setStatus("cancelled")}
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {status === "paid" && (
-                <button className="checkout-confirm" onClick={onBack}>
-                  Back to product
-                  <ArrowRight size={16} strokeWidth={2.6} />
+              <div className="tx-actions">
+                <button className="checkout-confirm" onClick={onOpenOrders}>
+                  Pay in my orders
+                  <ArrowUpRight size={16} strokeWidth={2.6} />
                 </button>
-              )}
-
-              {status === "cancelled" && (
-                <div className="tx-actions">
-                  <button
-                    className="checkout-confirm"
-                    onClick={() => {
-                      setStatus("pending");
-                      setStage("pick");
-                    }}
-                  >
-                    Try again
-                  </button>
-                  <button className="tx-secondary" onClick={onBack}>
-                    Back to product
-                  </button>
-                </div>
-              )}
+                <button className="tx-secondary" onClick={onBack}>
+                  Keep browsing
+                </button>
+              </div>
             </motion.div>
           )}
         </AnimatePresence>

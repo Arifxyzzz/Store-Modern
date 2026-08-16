@@ -145,10 +145,16 @@ export const PURCHASES: {
   { user: "MonoDev", product: "Grid Tycoon Base", price: "$28", time: "1 day ago", method: "QRIS", methodDetail: "QRIS — Scan & Pay", txid: "AXZ-19SJ40" },
 ];
 
-/* pending / unpaid orders — shown on the Cart page */
-export type OrderStatus = "awaiting" | "expired" | "processing";
+/* one status vocabulary for every order in the app —
+   checkout receipts and the profile cart both read from this */
+export type OrderStatus =
+  | "awaiting"
+  | "processing"
+  | "paid"
+  | "cancelled"
+  | "expired";
 
-export const PENDING_ORDERS: {
+export type Order = {
   product: string;
   tag: string;
   price: number;
@@ -158,7 +164,10 @@ export const PENDING_ORDERS: {
   created: string;
   expires: string;
   status: OrderStatus;
-}[] = [
+};
+
+/* all orders — shown on the orders panel in the profile aside */
+export const ORDERS: Order[] = [
   {
     product: "Drift Race Kit",
     tag: "Kit",
@@ -180,6 +189,17 @@ export const PENDING_ORDERS: {
     created: "34 min ago",
     expires: "26 min left",
     status: "processing",
+  },
+  {
+    product: "Nexus UI Pack",
+    tag: "UI",
+    price: 12,
+    method: "Crypto",
+    methodDetail: "USDT (BEP-20)",
+    txid: "AXZ-93KD77",
+    created: "1 day ago",
+    expires: "Completed",
+    status: "paid",
   },
   {
     product: "Sonic Sound Kit",

@@ -1,24 +1,14 @@
 import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
-  Bitcoin,
   CheckCircle2,
   ChevronDown,
-  CreditCard,
   Hash,
-  QrCode,
   ShoppingBag,
-  Wallet,
 } from "lucide-react";
 import Reveal from "../components/Reveal";
-import { PURCHASES, type PayMethod } from "../data";
-
-const METHOD_ICONS: Record<PayMethod, typeof Wallet> = {
-  QRIS: QrCode,
-  "E-Wallet": Wallet,
-  Crypto: Bitcoin,
-  PayPal: CreditCard,
-};
+import { PURCHASES } from "../data";
+import { METHOD_ICONS } from "../components/statusMeta";
 
 export default function SalesPage({ active }: { active: boolean }) {
   const [open, setOpen] = useState<string | null>(null);

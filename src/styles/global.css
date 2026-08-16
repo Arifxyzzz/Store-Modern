@@ -433,13 +433,24 @@ a {
   min-width: 0;
   height: 100%;
   padding: 44px 64px 48px;
-  overflow: hidden;
+  /* content that outgrows the viewport (small screens) scrolls instead of
+     being clipped — the wheel/touch handlers respect .scroll-y and only
+     page when the content actually fits */
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
   position: relative;
   z-index: 1;
+}
+
+.page::-webkit-scrollbar {
+  display: none;
 }
 
 /* ---------- Footer nav ---------- */
@@ -1578,17 +1589,24 @@ a {
   margin-top: 6px;
 }
 
-.tx-pending {
+/* unified status classes (st-*) — light checkout panel */
+.tx-status.st-awaiting {
   background: rgba(16, 16, 18, 0.07);
   color: var(--panel-ink);
 }
 
-.tx-paid {
+.tx-status.st-processing {
+  background: rgba(40, 90, 190, 0.1);
+  color: #2a5cc0;
+}
+
+.tx-status.st-paid {
   background: rgba(30, 122, 70, 0.12);
   color: #1e7a46;
 }
 
-.tx-cancelled {
+.tx-status.st-cancelled,
+.tx-status.st-expired {
   background: rgba(170, 40, 40, 0.1);
   color: #b03636;
 }
@@ -2118,6 +2136,7 @@ a {
   border-radius: 16px;
   padding: 11px 13px;
   text-align: left;
+  cursor: pointer;
   transition: border-color 0.25s, background 0.25s, opacity 0.3s;
 }
 
@@ -2128,6 +2147,25 @@ a {
 
 .cart-row.is-locked {
   opacity: 0.5;
+  cursor: default;
+}
+
+/* small round download-invoice button on a paid row */
+.cart-invoice-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 12px;
+  border: 1.5px solid #2c2c32;
+  color: #9a9aa2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color 0.25s, color 0.25s;
+}
+
+.cart-invoice-btn:hover {
+  border-color: #4a4a54;
+  color: var(--white);
 }
 
 .cart-thumb {
@@ -2174,22 +2212,24 @@ a {
   padding: 3px 8px;
 }
 
-.cart-badge.cart-awaiting {
+/* unified status classes (st-*) — dark cart panel */
+.cart-badge.st-awaiting {
   background: rgba(215, 165, 40, 0.14);
   color: #d8ac3e;
 }
 
-.cart-badge.cart-processing {
+.cart-badge.st-processing {
   background: rgba(80, 140, 240, 0.14);
   color: #6a9bf0;
 }
 
-.cart-badge.cart-expired {
+.cart-badge.st-expired,
+.cart-badge.st-cancelled {
   background: rgba(210, 70, 70, 0.13);
   color: #e07070;
 }
 
-.cart-badge.cart-paid {
+.cart-badge.st-paid {
   background: rgba(60, 190, 120, 0.13);
   color: #55c98a;
 }
@@ -2254,7 +2294,7 @@ a {
   justify-content: center;
 }
 
-.cart-pay-status.is-pending {
+.cart-pay-status.is-awaiting {
   background: rgba(215, 165, 40, 0.14);
   color: #d8ac3e;
 }
@@ -2262,6 +2302,11 @@ a {
 .cart-pay-status.is-paid {
   background: rgba(60, 190, 120, 0.14);
   color: #55c98a;
+}
+
+.cart-pay-status.is-cancelled {
+  background: rgba(210, 70, 70, 0.13);
+  color: #e07070;
 }
 
 .cart-pay-title {
@@ -2385,6 +2430,165 @@ a {
 
 .cart-refresh.is-loading {
   color: var(--white);
+}
+
+.cart-refresh.cart-cancel {
+  color: #e07070;
+}
+
+.cart-refresh.cart-cancel:hover:not(:disabled) {
+  border-color: #b04848;
+  color: #ff8f8f;
+}
+
+/* ---------- Invoice document ---------- */
+/* a white "paper" card — readable on both the dark cart panel
+   and the light checkout panel */
+.inv-doc {
+  width: 100%;
+  margin-top: 18px;
+  background: #ffffff;
+  color: #101012;
+  border-radius: 18px;
+  padding: 22px 20px;
+  text-align: left;
+  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.25);
+}
+
+.inv-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding-bottom: 14px;
+  border-bottom: 2px solid #101012;
+}
+
+.inv-brand {
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+}
+
+.inv-brand small {
+  display: block;
+  font-size: 8.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #66666c;
+  margin-top: 3px;
+}
+
+.inv-title {
+  text-align: right;
+}
+
+.inv-title b {
+  display: block;
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+.inv-paid-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 5px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: rgba(30, 122, 70, 0.12);
+  color: #1e7a46;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.inv-meta {
+  margin-top: 12px;
+}
+
+.inv-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 7px 0;
+  border-bottom: 1px solid #ececea;
+  font-size: 11px;
+}
+
+.inv-row span {
+  color: #66666c;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.inv-row b {
+  font-weight: 700;
+  text-align: right;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.inv-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-top: 14px;
+  padding: 12px 13px;
+  border-radius: 12px;
+  background: rgba(16, 16, 18, 0.045);
+}
+
+.inv-item-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.inv-item-info b {
+  font-size: 12.5px;
+  font-weight: 800;
+}
+
+.inv-item-info span {
+  font-size: 10px;
+  font-weight: 700;
+  color: #66666c;
+}
+
+.inv-item-price {
+  font-size: 13px;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
+.inv-total {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 2px solid #101012;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.inv-total b {
+  font-size: 16px;
+}
+
+.inv-foot {
+  margin-top: 14px;
+  font-size: 9.5px;
+  font-weight: 600;
+  color: #66666c;
+  line-height: 1.55;
 }
 
 /* ---------- Profile sidebar ---------- */
